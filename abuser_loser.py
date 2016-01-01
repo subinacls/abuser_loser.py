@@ -1,34 +1,9 @@
 #/usr/bin/env python
-from crontab import CronTab
 import hashlib
 import json
 import time
 import sys
 import os
-
-# init cron
-cron   = CronTab(user='root')
-cron.read()
-# add new cron job
-
-if 1 == 1:
- print "\t[INFO] Cron Job set - killing thy' self"
- cron.remove_all()
- cron.write()
- job  = cron.new('/root/abuser_loser.py')
- # job settings
- job.hour.every(1)
- job.set_comment("abuser_loser.py - running every day")
- job.enable()
- cron.write()
-else:
- job  = cron.new('/root/abuser_loser.py')
- # job settings
- job.hour.every(1)
- job.set_comment("abuser_loser.py - running every day")
- job.enable()
- cron.write()
- #print cron.render()
 
 # check hash value of fail2ban log
 def md5(fname):
@@ -61,12 +36,12 @@ tlr = tl.readlines()
 try:
  if a['MD5'] == f2bl:
   print "\t[INFO] Nothing has changed in the fail2ban.log\n\t\t[INFO] Quitting ..."
-  pass
 except Exception as fail2log:
- pass
-
-if 'MD5' not in a.keys():
  a['MD5'] = f2bl
+
+if a['MD5'] != f2bl:
+ print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
+
 for x in tlr:
  #print x
  # parse sections IP and Date
@@ -84,54 +59,50 @@ for x in tlr:
  #print v
  #print w
  #check Keys in JSON
- if a['MD5'] != f2bl:
-  print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
+ if t not in a.keys():
+  a[t] = {}
+  a[t]["tcount"] = 1
+ else:
+  a[t]["tcount"] = a[t]["tcount"] + 1
+ if u not in a[t].keys():
+  a[t][u] = {}
+  a[t][u]["ucount"] = 1
+ else:
+  a[t][u]["ucount"] = a[t][u]["ucount"] + 1
+ if v not in a[t][u].keys():
+  a[t][u][v] = {}
+  a[t][u][v]["vcount"] = 1
+ else:
+  a[t][u][v]["vcount"] = a[t][u][v]["vcount"] + 1
+ if w not in a[t][u][v].keys():
+  a[t][u][v][w] = {}
+  a[t][u][v][w]["wcount"] = 1
+  a[t][u][v][w]['rules'] = {}
+  a[t][u][v][w]['rules']['abuser'] = 0
+  a[t][u][v][w]['rules']['permaban'] = 0
+  a[t][u][v][w]['log'] = {}
+  a[t][u][v][w]['log']['firstseen'] = xd
+  a[t][u][v][w]['log']['lastseen'] = xd
+  a[t][u][v][w]['log']['everytime'] = []
+  a[t][u][v][w]['log']['everytime'].append(xd)
+ else:
+  a[t][u][v][w]["wcount"] = a[t][u][v][w]["wcount"] + 1
+  a[t][u][v][w]['log']['lastseen'] = xd
+  if xd in a[t][u][v][w]['log']['everytime']:
+   break
+  else:
+   a[t][u][v][w]['log']['everytime'].append(xd)
+ if a[t][u][v][w]['rules']["permaban"] == 1:
   pass
  else:
-  if t not in a.keys():
-   a[t] = {}
-   a[t]["tcount"] = 1
-  else:
-   a[t]["tcount"] = a[t]["tcount"] + 1
-  if u not in a[t].keys():
-   a[t][u] = {}
-   a[t][u]["ucount"] = 1
-  else:
-   a[t][u]["ucount"] = a[t][u]["ucount"] + 1
-  if v not in a[t][u].keys():
-   a[t][u][v] = {}
-   a[t][u][v]["vcount"] = 1
-  else:
-   a[t][u][v]["vcount"] = a[t][u][v]["vcount"] + 1
-  if w not in a[t][u][v].keys():
-   a[t][u][v][w] = {}
-   a[t][u][v][w]["wcount"] = 1
-   a[t][u][v][w]['rules'] = {}
-   a[t][u][v][w]['rules']['abuser'] = 0
-   a[t][u][v][w]['rules']['permaban'] = 0
-   a[t][u][v][w]['log'] = {}
-   a[t][u][v][w]['log']['firstseen'] = xd
-   a[t][u][v][w]['log']['lastseen'] = xd
-   a[t][u][v][w]['log']['everytime'] = []
-   a[t][u][v][w]['log']['everytime'].append(xd)
-  else:
-   a[t][u][v][w]["wcount"] = a[t][u][v][w]["wcount"] + 1
-   a[t][u][v][w]['log']['lastseen'] = xd
-   if xd in a[t][u][v][w]['log']['everytime']:
-    break
-   else:
-    a[t][u][v][w]['log']['everytime'].append(xd)
+  if a[t][u][v][w]["wcount"] != 6:
+   a[t][u][v][w]['rules']["abuser"] = a[t][u][v][w]['rules']["abuser"] + 1
+  if a[t][u][v][w]['rules']["abuser"] == 3:
+   print "\t[INFO] Abuser Identified: " + str(xr)
+   a[t][u][v][w]['rules']["permaban"] =  a[t][u][v][w]['rules']["permaban"] + 1
   if a[t][u][v][w]['rules']["permaban"] == 1:
-   pass
-  else:
-   if a[t][u][v][w]["wcount"] != 6:
-    a[t][u][v][w]['rules']["abuser"] = a[t][u][v][w]['rules']["abuser"] + 1
-   if a[t][u][v][w]['rules']["abuser"] == 3:
-    print "\t[INFO] Abuser Identified: " + str(xr)
-    a[t][u][v][w]['rules']["permaban"] =  a[t][u][v][w]['rules']["permaban"] + 1
-   if a[t][u][v][w]['rules']["permaban"] == 1:
-    print "\t\t[WARNING] Permaban Action taken in iptables"
-    ipset.append(xr)
+   print "\t\t[WARNING] Permaban Action taken in iptables"
+   ipset.append(xr)
 #print a
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
