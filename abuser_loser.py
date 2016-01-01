@@ -1,8 +1,34 @@
 #/usr/bin/env python
+from crontab import CronTab
 import hashlib
 import json
 import time
+import sys
 import os
+
+# init cron
+cron   = CronTab(user='root')
+cron.read()
+# add new cron job
+
+if 1 == 1:
+ print "\t[INFO] Cron Job set - killing thy' self"
+ cron.remove_all()
+ cron.write()
+ job  = cron.new('/root/abuser_loser.py')
+ # job settings
+ job.hour.every(1)
+ job.set_comment("abuser_loser.py - running every day")
+ job.enable()
+ cron.write()
+else:
+ job  = cron.new('/root/abuser_loser.py')
+ # job settings
+ job.hour.every(1)
+ job.set_comment("abuser_loser.py - running every day")
+ job.enable()
+ cron.write()
+ #print cron.render()
 
 # check hash value of fail2ban log
 def md5(fname):
@@ -24,38 +50,44 @@ except Exception as e:
 
 # ipset list
 ipset = []
-
 # read system log from fail2ban
 tl = os.popen('cat /var/log/fail2ban.log* | grep -viE "Unban|INFO" | sed -r "s/(((.*)(.*)),(.*) Ban (.*))/\\6 \\3/g"')# > fail2banlist')
 tl
 tlr = tl.readlines()
-
-# check md5 sum of fail2ban.log file
+# make fail2banlist
+#with open(tlr) as f:
+# fr = f.readlines()
+#for x in fr:
 try:
  if a['MD5'] == f2bl:
   print "\t[INFO] Nothing has changed in the fail2ban.log\n\t\t[INFO] Quitting ..."
   pass
 except Exception as fail2log:
  pass
+
 if 'MD5' not in a.keys():
  a['MD5'] = f2bl
-
-# start processing
 for x in tlr:
+ #print x
  # parse sections IP and Date
  xr = str(x).split()[0]
  xd = " ".join(str(x).split()[1::])
+ #print xd
+ #print xr
  # split and strip ip address
  t = str(xr).split(".")[0]
  u = str(xr).split(".")[1]
  v = str(xr).split(".")[2]
  w = str(xr).split(".")[3].strip()
- # validate MD5 sum in Keys do or do not match
+ #print t
+ #print u
+ #print v
+ #print w
+ #check Keys in JSON
  if a['MD5'] != f2bl:
   print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
   pass
  else:
-  # continue processing log
   if t not in a.keys():
    a[t] = {}
    a[t]["tcount"] = 1
@@ -100,11 +132,11 @@ for x in tlr:
    if a[t][u][v][w]['rules']["permaban"] == 1:
     print "\t\t[WARNING] Permaban Action taken in iptables"
     ipset.append(xr)
-    
+#print a
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
  json.dump(a, outfile, sort_keys = True, indent = 4,ensure_ascii=False)
-
+#print a
 # write ipset list
 with open("ipset_list","a") as ipsetlist:
  for ipsetw in ipset:
