@@ -35,13 +35,17 @@ tlr = tl.readlines()
 #for x in fr:
 try:
  if a['MD5'] == f2bl:
-  print "\t[INFO] Nothing has changed in the fail2ban.log\n\t\t[INFO] Quitting ..."
+  print "\t[INFO] Nothing has changed in the fail2ban.log"
+  print "\t[INFO] Logged MD5sum of: '/var/log/fail2ban.log' - " + str(f2bl)
+  print "\t[INFO] System MD5sum of: '/var/log/fail2ban.log' - " + str(os.popen('md5sum /var/log/fail2ban.log').read()).split()[0]
+  print "\t\t[INFO] Quitting ..."
+  sys.exit(0)
 except Exception as fail2log:
- a['MD5'] = f2bl
+ pass
 
 if a['MD5'] != f2bl:
  print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
-
+ a['MD5'] = f2bl
 for x in tlr:
  #print x
  # parse sections IP and Date
@@ -62,18 +66,93 @@ for x in tlr:
  if t not in a.keys():
   a[t] = {}
   a[t]["tcount"] = 1
+  a[t]['rules'] = {}
+  a[t]['log'] = {}
+  a[t]['rules']['abuser'] = 0
+  a[t]['rules']['permaban'] = 0
+  a[t]['log']['firstseen'] = xd
+  a[t]['log']['lastseen'] = xd
+  a[t]['log']['everytime'] = []
+  a[t]['log']['everytime'].append(xd)
  else:
   a[t]["tcount"] = a[t]["tcount"] + 1
+  a[t]['log']['lastseen'] = xd
+  if xd in a[t]['log']['everytime']:
+   break
+  else:
+   a[t]['log']['everytime'].append(xd)
+ if a[t]['rules']["permaban"] == 1:
+  pass
+ else:
+  if a[t]["tcount"] != 60:
+   a[t]['rules']["abuser"] = a[t]['rules']["abuser"] + 1
+  if a[t]['rules']["abuser"] == 30:
+   print "\t[INFO] T-Rule Abuser Identified: " + str(xr)
+   a[t]['rules']["permaban"] =  a[t]['rules']["permaban"] + 1
+  if a[t]['rules']["permaban"] == 20:
+   print "\t\t[WARNING] T-Rule Permaban Action taken in iptables"
+   ipset.append(xr)
+
  if u not in a[t].keys():
   a[t][u] = {}
   a[t][u]["ucount"] = 1
+  a[t][u]['rules'] = {}
+  a[t][u]['rules']['abuser'] = 0
+  a[t][u]['rules']['permaban'] = 0
+  a[t][u]['log'] = {}
+  a[t][u]['log']['firstseen'] = xd
+  a[t][u]['log']['lastseen'] = xd
+  a[t][u]['log']['everytime'] = []
+  a[t][u]['log']['everytime'].append(xd)
  else:
   a[t][u]["ucount"] = a[t][u]["ucount"] + 1
+  a[t][u]['log']['lastseen'] = xd
+  if xd in a[t][u]['log']['everytime']:
+   break
+  else:
+   a[t][u]['log']['everytime'].append(xd)
+ if a[t][u]['rules']["permaban"] == 1:
+  pass
+ else:
+  if a[t][u]["ucount"] != 40:
+   a[t][u]['rules']["abuser"] = a[t][u]['rules']["abuser"] + 1
+  if a[t][u]['rules']["abuser"] == 20:
+   print "\t[INFO] U-Rule Abuser Identified: " + str(xr)
+   a[t][u]['rules']["permaban"] =  a[t][u]['rules']["permaban"] + 1
+  if a[t][u]['rules']["permaban"] == 20:
+   print "\t\t[WARNING] U-Rule Permaban Action taken in iptables"
+   ipset.append(xr)
+
  if v not in a[t][u].keys():
   a[t][u][v] = {}
   a[t][u][v]["vcount"] = 1
+  a[t][u][v]['rules'] = {}
+  a[t][u][v]['rules']['abuser'] = 0
+  a[t][u][v]['rules']['permaban'] = 0
+  a[t][u][v]['log'] = {}
+  a[t][u][v]['log']['firstseen'] = xd
+  a[t][u][v]['log']['lastseen'] = xd
+  a[t][u][v]['log']['everytime'] = []
+  a[t][u][v]['log']['everytime'].append(xd)
  else:
   a[t][u][v]["vcount"] = a[t][u][v]["vcount"] + 1
+  a[t][u][v]['log']['lastseen'] = xd
+  if xd in a[t][u][v]['log']['everytime']:
+   break
+  else:
+   a[t][u][v]['log']['everytime'].append(xd)
+ if a[t][u][v]['rules']["permaban"] == 1:
+  pass
+ else:
+  if a[t][u][v]["vcount"] != 30:
+   a[t][u][v]['rules']["abuser"] = a[t][u][v]['rules']["abuser"] + 1
+  if a[t][u][v]['rules']["abuser"] == 15:
+   print "\t[INFO] V-Rule Abuser Identified: " + str(xr)
+   a[t][u][v]['rules']["permaban"] =  a[t][u][v]['rules']["permaban"] + 1
+  if a[t][u][v]['rules']["permaban"] == 10:
+   print "\t\t[WARNING] V-Rule Permaban Action taken in iptables"
+   ipset.append(xr)
+
  if w not in a[t][u][v].keys():
   a[t][u][v][w] = {}
   a[t][u][v][w]["wcount"] = 1
@@ -98,11 +177,14 @@ for x in tlr:
   if a[t][u][v][w]["wcount"] != 6:
    a[t][u][v][w]['rules']["abuser"] = a[t][u][v][w]['rules']["abuser"] + 1
   if a[t][u][v][w]['rules']["abuser"] == 3:
-   print "\t[INFO] Abuser Identified: " + str(xr)
+   print "\t[INFO] W-Rule Abuser Identified: " + str(xr)
    a[t][u][v][w]['rules']["permaban"] =  a[t][u][v][w]['rules']["permaban"] + 1
   if a[t][u][v][w]['rules']["permaban"] == 1:
-   print "\t\t[WARNING] Permaban Action taken in iptables"
+   print "\t\t[WARNING] W-Rule Permaban Action taken in iptables"
    ipset.append(xr)
+
+
+
 #print a
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
