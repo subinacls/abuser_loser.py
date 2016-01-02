@@ -15,7 +15,7 @@ def md5(fname):
 f2bl = md5('/var/log/fail2ban.log')
 
 #read log
-jlogfile = "Jbusefile"
+jlogfile = "/root/Jbusefile"
 try:
  with open(jlogfile) as jlf:
   a = json.load(jlf)
@@ -32,16 +32,18 @@ tlr = tl.readlines()
 # check MD5 sums to process file or not
 try:
  if a['MD5'] == f2bl:
-  print "\t[INFO] Nothing has changed in the fail2ban.log"
-  print "\t[INFO] Logged MD5sum of: '/var/log/fail2ban.log' - " + str(f2bl)
+  print "\n\t[INFO] Logged MD5sum of: '/var/log/fail2ban.log' - " + str(f2bl)
   print "\t[INFO] System MD5sum of: '/var/log/fail2ban.log' - " + str(os.popen('md5sum /var/log/fail2ban.log').read()).split()[0]
-  print "\t\t[INFO] Quitting ..."
+  print "\t[INFO] Nothing has changed in the fail2ban.log"
+  print "\t\t[INFO] Quitting ...\n"
   sys.exit(0)
 except Exception as fail2log:
+ a['MD5'] = 0
+ a['IPSET'] = []
  pass
 
 if a['MD5'] != f2bl:
- print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
+ print "\n\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
  a['MD5'] = f2bl
 
 # process file
@@ -82,6 +84,10 @@ for x in tlr:
    print "\t[INFO] T-Rule Abuser Identified: " + str(xr)
    a[t]['rules']["permaban"] =  a[t]['rules']["permaban"] + 1
   if a[t]['rules']["permaban"] == 20:
+   xrs = str(xr).split(".")
+   xrs1 = xrs[0]
+   a['IPSET'].append(str(xrs1)+".0.0.0/8")
+
    print "\t\t[WARNING] T-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
@@ -112,6 +118,10 @@ for x in tlr:
    print "\t[INFO] U-Rule Abuser Identified: " + str(xr)
    a[t][u]['rules']["permaban"] =  a[t][u]['rules']["permaban"] + 1
   if a[t][u]['rules']["permaban"] == 20:
+   xrs = str(xr).split(".")
+   xrs1 = xrs[0]
+   xrs2 = xrs[1]
+   a['IPSET'].append(str(xrs1)+"."+str(xrs2)+".0.0/16")
    print "\t\t[WARNING] U-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
@@ -142,6 +152,11 @@ for x in tlr:
    print "\t[INFO] V-Rule Abuser Identified: " + str(xr)
    a[t][u][v]['rules']["permaban"] =  a[t][u][v]['rules']["permaban"] + 1
   if a[t][u][v]['rules']["permaban"] == 10:
+   xrs = str(xr).split(".")
+   xrs1 = xrs[0]
+   xrs2 = xrs[1]
+   xrs3 = xrs[2]
+   a['IPSET'].append(str(xrs1)+"."+str(xrs2)+"."+str(xrs3)+".0/24")
    print "\t\t[WARNING] V-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
@@ -172,6 +187,7 @@ for x in tlr:
    print "\t[INFO] W-Rule Abuser Identified: " + str(xr)
    a[t][u][v][w]['rules']["permaban"] =  a[t][u][v][w]['rules']["permaban"] + 1
   if a[t][u][v][w]['rules']["permaban"] == 1:
+   a['IPSET'].append(xr)
    print "\t\t[WARNING] W-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
@@ -180,6 +196,8 @@ with open(jlogfile, 'w') as outfile:
  json.dump(a, outfile, sort_keys = True, indent = 4,ensure_ascii=False)
 
 # write ipset list
-with open("ipset_list","a") as ipsetlist:
+with open("/root/ipset_list","a") as ipsetlist:
  for ipsetw in ipset:
   ipsetlist.write(str(ipsetw)+"\n")
+
+print "\t[INFO] Finished processing Fail2ban Logs\n\t\t[INFO] Quitting ..."
