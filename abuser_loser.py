@@ -29,10 +29,7 @@ ipset = []
 tl = os.popen('cat /var/log/fail2ban.log* | grep -viE "Unban|INFO" | sed -r "s/(((.*)(.*)),(.*) Ban (.*))/\\6 \\3/g"')# > fail2banlist')
 tl
 tlr = tl.readlines()
-# make fail2banlist
-#with open(tlr) as f:
-# fr = f.readlines()
-#for x in fr:
+# check MD5 sums to process file or not
 try:
  if a['MD5'] == f2bl:
   print "\t[INFO] Nothing has changed in the fail2ban.log"
@@ -46,22 +43,17 @@ except Exception as fail2log:
 if a['MD5'] != f2bl:
  print "\t[INFO] fail2ban.log has changed in the fail2ban.log\n\t\t[INFO] Starting processing ..."
  a['MD5'] = f2bl
+
+# process file
 for x in tlr:
- #print x
  # parse sections IP and Date
  xr = str(x).split()[0]
  xd = " ".join(str(x).split()[1::])
- #print xd
- #print xr
  # split and strip ip address
  t = str(xr).split(".")[0]
  u = str(xr).split(".")[1]
  v = str(xr).split(".")[2]
  w = str(xr).split(".")[3].strip()
- #print t
- #print u
- #print v
- #print w
  #check Keys in JSON
  if t not in a.keys():
   a[t] = {}
@@ -183,13 +175,10 @@ for x in tlr:
    print "\t\t[WARNING] W-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
-
-
-#print a
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
  json.dump(a, outfile, sort_keys = True, indent = 4,ensure_ascii=False)
-#print a
+
 # write ipset list
 with open("ipset_list","a") as ipsetlist:
  for ipsetw in ipset:
