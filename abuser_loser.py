@@ -1,9 +1,19 @@
 #/usr/bin/env python
 import hashlib
+import socket
+import struct
 import json
 import time
 import sys
 import os
+
+# check if ip is within CIDR
+def addressInNetwork(ip, net):
+   ipaddr = int(''.join([ '%02x' % int(x) for x in ip.split('.') ]), 16)
+   netstr, bits = net.split('/')
+   netaddr = int(''.join([ '%02x' % int(x) for x in netstr.split('.') ]), 16)
+   mask = (0xffffffff << (32 - int(bits))) & 0xffffffff
+   return (ipaddr & mask) == (netaddr & mask)
 
 # check hash value of fail2ban log
 def md5(fname):
@@ -12,6 +22,7 @@ def md5(fname):
         for chunk in iter(lambda: f.read(4096), b""):
             hash.update(chunk)
     return hash.hexdigest()
+
 f2bl = md5('/var/log/fail2ban.log')
 
 #read log
@@ -37,6 +48,7 @@ try:
   print "\t[INFO] Nothing has changed in the fail2ban.log"
   print "\t\t[INFO] Quitting ...\n"
   sys.exit(0)
+  #pass
 except Exception as fail2log:
  a['MD5'] = 0
  a['IPSET'] = []
@@ -78,7 +90,7 @@ for x in tlr:
  if a[t]['rules']["permaban"] == 1:
   pass
  else:
-  if a[t]["tcount"] != 60:
+  if a[t]["tcount"] != 160:
    a[t]['rules']["abuser"] = a[t]['rules']["abuser"] + 1
   if a[t]['rules']["abuser"] == 30:
    print "\t[INFO] T-Rule Abuser Identified: " + str(xr)
@@ -112,7 +124,7 @@ for x in tlr:
  if a[t][u]['rules']["permaban"] == 1:
   pass
  else:
-  if a[t][u]["ucount"] != 40:
+  if a[t][u]["ucount"] != 60:
    a[t][u]['rules']["abuser"] = a[t][u]['rules']["abuser"] + 1
   if a[t][u]['rules']["abuser"] == 20:
    print "\t[INFO] U-Rule Abuser Identified: " + str(xr)
@@ -190,6 +202,37 @@ for x in tlr:
    a['IPSET'].append(xr)
    print "\t\t[WARNING] W-Rule Permaban Action taken in iptables"
    ipset.append(xr)
+
+def newgip():
+ sipsx[2] = int(sipsx[2])-1
+ gip = str(sipsx[0]) + "." +  str(sipsx[1]) + "." +  str(sipsx[2]) + ".0"
+ rlookup(gip,ipcidr)
+
+def rlookup(gip, ipcidr):
+ rli = os.popen('grep -E "^'+gip+'" \/root\/iplist\/*').readlines()
+ try:
+  if rli == []:
+   newgip()
+  else:
+   ipcidr.append(rli)
+   pass
+  ipcidr = sorted(set(ipcidr))
+ except Exception as tfail:
+  pass
+
+try:
+ ipcidr = []
+ with open('/root/ipset_list', 'r')as ipsetl:
+  ipsetll = ipsetl.readlines()
+ for ipsx in ipsetll:
+  sipsx = str(ipsx).split(".")
+  gip = str(sipsx[0]) + "." + str(sipsx[1]) + "." + str(sipsx[2]) + ".0"
+  aaa = os.popen('grep -E "^'+gip+'" \/root\/iplist\/*').readlines()
+  rlookup(gip, ipcidr)
+  print  str("\t[WARNING] PermaBanned User Information\n\t\t[!] " + str(ipcidr[0][0]))
+except Exception as E:
+ print E, "big E"
+ pass
 
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
