@@ -7,23 +7,6 @@ import time
 import sys
 import os
 
-"""
-def newgip():
- sipsx[2] = int(sipsx[2])-1
- gip = str(sipsx[0]) + "." +  str(sipsx[1]) + "." +  str(sipsx[2]) + ".0"
- rlookup(gip,ipcidr)
-
-def rlookup(gip, ipcidr):
- rli = os.popen('grep -E "^'+gip+'" \/root\/iplist\/*').readlines()
- try:
-  if rli == []:
-   newgip()
-  else:
-   ipcidr.append(rli)
-   pass
-  ipcidr = sorted(set(ipcidr))
- except Exception as tfail:
-  pass
 
 # check if ip is within CIDR
 def addressInNetwork(ip, net):
@@ -32,16 +15,16 @@ def addressInNetwork(ip, net):
    netaddr = int(''.join([ '%02x' % int(x) for x in netstr.split('.') ]), 16)
    mask = (0xffffffff << (32 - int(bits))) & 0xffffffff
    return (ipaddr & mask) == (netaddr & mask)
-"""
+
 def newgip(gip, ipcidr):
  sipsx = gip.split(".")
  #print sipsx
  if int(sipsx[2]) <= 0:
-  #print "not found"
   sys.exit()
- sipsx[2] = int(sipsx[2])-1
- gip = str(sipsx[0]) + "." +  str(sipsx[1]) + "." +  str(sipsx[2]) + ".0"
- rlookup(gip,ipcidr)
+ else:
+  sipsx[2] = int(sipsx[2])-1
+  gip = str(sipsx[0]) + "." +  str(sipsx[1]) + "." +  str(sipsx[2]) + ".0"
+  rlookup(gip,ipcidr)
 
 def rlookup(gip, ipcidr):
  if str(gip).split(".")[2] <= 0:
@@ -83,7 +66,7 @@ except Exception as e:
 # ipset list
 ipset = []
 # read system log from fail2ban
-tl = os.popen('cat /var/log/fail2ban.log* | grep -viE "Unban|INFO" | sed -r "s/(((.*)(.*)),(.*) Ban (.*))/\\6 \\3/g"')# > fail2banlist')
+tl = os.popen('grep " " /var/log/fail2ban.log* | cut -d":" -f2- | grep -viE "Unban|INFO" | grep " Ban " |  sed -r "s/(((.*)(.*)),(.*) Ban (.*))/\\6 \\2/g"')
 tl
 tlr = tl.readlines()
 # check MD5 sums to process file or not
@@ -109,10 +92,14 @@ if 'FailAuth' not in a.keys():
 
 # process file
 for x in tlr:
+ #print x, "x"
  # parse sections IP and Date
- xr = str(x).split()[0]
- xd = " ".join(str(x).split()[1::])
- a['FailAuth'].append(str(xd).strip() + " " + str(xr))
+ xr = str(x).split(" ")[0]
+ xd = str(x).split(" ")[1::]
+ xd = " ".join(xd)
+ xd = str(xd).strip()
+ #print xr
+ a['FailAuth'].append(str(xd).strip() + ", " + str(xr))
  # split and strip ip address
  t = str(xr).split(".")[0]
  u = str(xr).split(".")[1]
@@ -149,7 +136,6 @@ for x in tlr:
    xrs = str(xr).split(".")
    xrs1 = xrs[0]
    a['IPSET'].append(str(xrs1)+".0.0.0/8")
-
    print "\t\t[WARNING] T-Rule Permaban Action taken in iptables"
    ipset.append(xr)
 
@@ -249,6 +235,7 @@ for x in tlr:
    print "\t[INFO] W-Rule Abuser Identified: " + str(xr)
    a[t][u][v][w]['rules']["permaban"] =  a[t][u][v][w]['rules']["permaban"] + 1
   if a[t][u][v][w]['rules']["permaban"] == 1:
+   ipset.append(xr)
    #a['IPSET'].append(xr)
    print "\t\t[WARNING] W-Rule Permaban Action taken in iptables"
    gi = str(xr).split(".")
@@ -257,16 +244,18 @@ for x in tlr:
    gi3 = gi[2]
    gi4 = "0"
    gip = str(gi1) + "." + str(gi2) + "."  + str(gi3) + "." + str(gi4)
+   #print gip, "gip"
    try:
-    gg = rlookup(gip, ipset)
-    for xip in ipset:
-     a['IPSET'].append(str(xip[0]).strip() + "," + str(xr))
+    #gg = rlookup(gip, ipset)
+    #print ipset, "ipset"
+    a['IPSET'].append(str(xr))
     #print a['IPSET']
    except Exception as rlf:
+    #print rlf, "rlf"
     pass
-   ipset.append(xr)
+   #ipset.append(xr)
    #print ipset
-
+'''
 try:
  ipcidr = []
  with open('/root/ipset_list', 'r')as ipsetl:
@@ -280,7 +269,7 @@ try:
 except Exception as E:
  #print E, "big E"
  pass
-
+'''
 # dump JSON file
 with open(jlogfile, 'w') as outfile:
  json.dump(a, outfile, sort_keys = True, indent = 4,ensure_ascii=False)
@@ -291,4 +280,3 @@ with open("/root/ipset_list","a") as ipsetlist:
   ipsetlist.write(str(ipsetw)+"\n")
 
 print "\t[INFO] Finished processing Fail2ban Logs\n\t\t[INFO] Quitting ..."
-
